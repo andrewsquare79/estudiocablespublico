@@ -1,0 +1,51 @@
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #0f172a;
+  color: white;
+  margin: 20px;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.kpis {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 20px;
+}
+
+.kpi {
+  background: #1e293b;
+  padding: 15px;
+  border-radius: 12px;
+  width: 30%;
+  text-align: center;
+}
+
+.kpi p {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.filters {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+select {
+  padding: 8px;
+  margin: 5px;
+  border-radius: 6px;
+}
+
+.charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+#nivelChart {
+  grid-column: span 2;
+}
