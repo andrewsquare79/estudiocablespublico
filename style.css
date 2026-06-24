@@ -5,47 +5,139 @@ body {
   margin: 20px;
 }
 
-h1 {
-  text-align: center;
-  margin-bottom: 20px;
+/* HEADER */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
 }
 
+.header h1 {
+  white-space: nowrap;
+  font-size: 22px;
+}
+
+.logo-container {
+  background: white;
+  padding: 5px 10px;
+  border-radius: 8px;
+}
+
+.logo {
+  width: 110px;
+}
+
+.flag {
+  width: 35px;
+}
+
+/* KPIs */
 .kpis {
-  display: flex;
-  justify-content: space-around;
-  margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin: 20px 0;
 }
 
 .kpi {
   background: #1e293b;
   padding: 15px;
   border-radius: 12px;
-  width: 30%;
   text-align: center;
 }
 
 .kpi p {
-  font-size: 24px;
+  font-size: 20px;
+  color: #38bdf8;
+}
+
+/* FILTROS */
+.filters {
+  text-align: center;
+}
+
+.filter-group {
+  margin-bottom: 10px;
+}
+
+.filter-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  justify-content: center;
+}
+
+.filter-btn {
+  background: #1e293b;
+  border: 1px solid #334155;
+  padding: 6px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+.filter-btn.active {
+  background: #38bdf8;
+  color: black;
   font-weight: bold;
 }
 
-.filters {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-select {
+button {
+  background: #ef4444;
+  color: white;
   padding: 8px;
-  margin: 5px;
   border-radius: 6px;
+  border: none;
+  cursor: pointer;
 }
 
-.charts {
+/* GRID */
+.main-container {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 3fr 1fr;
   gap: 20px;
 }
 
-#nivelChart {
+.charts-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.chart-box {
+  background: #1e293b;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.chart-box.full {
   grid-column: span 2;
+}
+
+/* RANKING */
+.ranking {
+  background: #1e293b;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+table {
+  width: 100%;
+  font-size: 13px;
+}
+
+th, td {
+  padding: 6px;
+}
+
+tr:hover {
+  background: #334155;
+}
+
+/* FOOTER */
+.footer {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 12px;
+  color: #94a3b8;
 }
