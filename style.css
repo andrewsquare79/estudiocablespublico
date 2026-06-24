@@ -1,163 +1,143 @@
-const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR9TmuIYc5_n77zqGnAncqb3qgG5z7JPKh3k5lbXmLdztFQOuFeh3Tm8DRiny8HlySCW4EzUi1V6lje/pub?output=csv";
-
-let rawData = [];
-let charts = {};
-
-let selectedFilters = {
-  Empresa: [],
-  Nivel: [],
-  Material: []
-};
-
-Papa.parse(CSV_URL, {
-  download: true,
-  header: true,
-  complete: function(results) {
-    rawData = results.data;
-    initFilters();
-    updateDashboard();
-  }
-});
-
-function initFilters() {
-  createButtons("empresaFilter", getUnique("Empresa"), "Empresa");
-  createButtons("nivelFilter", getUnique("Nivel"), "Nivel");
-  createButtons("materialFilter", getUnique("Material"), "Material");
-
-  document.getElementById("resetBtn").onclick = resetFilters;
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #0f172a;
+  color: white;
+  margin: 20px;
 }
 
-function getUnique(field) {
-  return [...new Set(rawData.map(d => d[field]).filter(v => v))];
+/* HEADER */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
 }
 
-function createButtons(containerId, values, key) {
-  const container = document.getElementById(containerId);
-
-  values.forEach(val => {
-    const btn = document.createElement("div");
-    btn.className = "filter-btn";
-    btn.innerText = val;
-
-    btn.onclick = () => {
-      btn.classList.toggle("active");
-
-      if (selectedFilters[key].includes(val)) {
-        selectedFilters[key] = selectedFilters[key].filter(v => v !== val);
-      } else {
-        selectedFilters[key].push(val);
-      }
-
-      updateDashboard();
-    };
-
-    container.appendChild(btn);
-  });
+.header h1 {
+  white-space: nowrap;
+  font-size: 22px;
 }
 
-function resetFilters() {
-  selectedFilters = { Empresa: [], Nivel: [], Material: [] };
-  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
-  updateDashboard();
+.logo-container {
+  background: white;
+  padding: 5px 10px;
+  border-radius: 8px;
 }
 
-function getFilteredData() {
-  return rawData.filter(r => {
-    return (
-      (!selectedFilters.Empresa.length || selectedFilters.Empresa.includes(r.Empresa)) &&
-      (!selectedFilters.Nivel.length || selectedFilters.Nivel.includes(r.Nivel)) &&
-      (!selectedFilters.Material.length || selectedFilters.Material.includes(r.Material))
-    );
-  });
+.logo {
+  width: 110px;
 }
 
-function groupBy(data, key) {
-  const map = {};
-  data.forEach(r => {
-    const k = r[key] || "Otros";
-    map[k] = (map[k] || 0) + (parseFloat(r.Cantidad_m) || 0);
-  });
-  return map;
+.flag {
+  width: 35px;
 }
 
-function updateDashboard() {
-  const data = getFilteredData();
-  updateKPIs(data);
-  updateRanking(data);
-  drawCharts(data);
+/* KPIs */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin: 20px 0;
 }
 
-function updateKPIs(data) {
-  let total = 0;
-  const empresas = new Set();
-  const tech = {};
-  const nivel = {};
-
-  data.forEach(r => {
-    const val = parseFloat(r.Cantidad_m) || 0;
-    total += val;
-    empresas.add(r.Empresa);
-    tech[r.Tecnologia] = (tech[r.Tecnologia] || 0) + val;
-    nivel[r.Nivel] = (nivel[r.Nivel] || 0) + val;
-  });
-
-  document.getElementById("totalKPI").innerText = Math.round(total).toLocaleString();
-  document.getElementById("empresasKPI").innerText = empresas.size;
-  document.getElementById("topTecKPI").innerText = getTop(tech);
-  document.getElementById("topNivelKPI").innerText = getTop(nivel);
+.kpi {
+  background: #1e293b;
+  padding: 15px;
+  border-radius: 12px;
+  text-align: center;
 }
 
-function getTop(obj) {
-  return Object.keys(obj).reduce((a, b) => obj[a] > obj[b] ? a : b, "-");
+.kpi p {
+  font-size: 20px;
+  color: #38bdf8;
 }
 
-function updateRanking(data) {
-  const table = document.getElementById("rankingTable");
-  table.innerHTML = "";
-
-  const grouped = groupBy(data, "Tecnologia");
-
-  const sorted = Object.entries(grouped)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10);
-
-  sorted.forEach((row, i) => {
-    table.innerHTML += `
-      <tr>
-        <td>${i + 1}</td>
-        <td>${row[0]}</td>
-        <td>${Math.round(row[1]).toLocaleString()}</td>
-      </tr>`;
-  });
+/* FILTROS */
+.filters {
+  text-align: center;
 }
 
-function drawCharts(data) {
-  Object.values(charts).forEach(c => c.destroy());
-
-  charts.tech = createChart("techChart", "bar", groupBy(data, "Tecnologia"), "Tecnología");
-  charts.material = createChart("materialChart", "pie", groupBy(data, "Material"), "Material");
-  charts.nivel = createChart("nivelChart", "bar", groupBy(data, "Nivel"), "Nivel");
+.filter-group {
+  margin-bottom: 10px;
 }
 
-function createChart(id, type, dataset, label) {
-  return new Chart(document.getElementById(id), {
-    type,
-    data: {
-      labels: Object.keys(dataset),
-      datasets: [{
-        label,
-        data: Object.values(dataset)
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: type !== "pie" ? {
-        x: { title: { display: true, text: label } },
-        y: {
-          title: { display: true, text: "Cantidad (m)" },
-          ticks: { callback: v => v.toLocaleString() }
-        }
-      } : {}
-    }
-  });
+.filter-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  justify-content: center;
+}
+
+.filter-btn {
+  background: #1e293b;
+  border: 1px solid #334155;
+  padding: 6px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+.filter-btn.active {
+  background: #38bdf8;
+  color: black;
+  font-weight: bold;
+}
+
+button {
+  background: #ef4444;
+  color: white;
+  padding: 8px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+/* GRID */
+.main-container {
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+  gap: 20px;
+}
+
+.charts-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.chart-box {
+  background: #1e293b;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.chart-box.full {
+  grid-column: span 2;
+}
+
+/* RANKING */
+.ranking {
+  background: #1e293b;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+table {
+  width: 100%;
+  font-size: 13px;
+}
+
+th, td {
+  padding: 6px;
+}
+
+tr:hover {
+  background: #334155;
+}
+
+/* FOOTER */
+.footer {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 12px;
+  color: #94a3b8;
 }
