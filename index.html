@@ -1,51 +1,20 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<title>Dashboard Cables PRO</title>
-
-<link rel="stylesheet" href="style.css">
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-</head>
-
-<body>
-
-<h1>📊 Consumo de Cable - Sector Público</h1>
-
-<!-- KPI -->
-<div class="kpis">
-  <div class="kpi">
-    <h3>Total Metros</h3>
-    <p id="totalKPI">0</p>
-  </div>
-
-  <div class="kpi">
-    <h3>Top Tecnología</h3>
-    <p id="topTecKPI">-</p>
-  </div>
-
-  <div class="kpi">
-    <h3># Empresas</h3>
-    <p id="empresasKPI">0</p>
-  </div>
-</div>
-
-<!-- filtros -->
 <div class="filters">
-  <select id="empresaFilter"><option value="all">Empresa</option></select>
-  <select id="nivelFilter"><option value="all">Nivel</option></select>
-  <select id="materialFilter"><option value="all">Material</option></select>
-</div>
 
-<!-- charts -->
-<div class="charts">
-  <canvas id="techChart"></canvas>
-  <canvas id="materialChart"></canvas>
-  <canvas id="nivelChart"></canvas>
-</div>
+  <div class="filter-group">
+    <label>Empresa</label>
+    <div id="empresaFilter" class="filter-buttons"></div>
+  </div>
 
-<script src="script.js"></script>
-</body>
-</html>
+  <div class="filter-group">
+    <label>Nivel</label>
+    <div id="nivelFilter" class="filter-buttons"></div>
+  </div>
+
+  <div class="filter-group">
+    <label>Material</label>
+    <div id="materialFilter" class="filter-buttons"></div>
+  </div>
+
+  <button id="resetBtn">Reset</button>
+
+</div>
