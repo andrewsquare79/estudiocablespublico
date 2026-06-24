@@ -3,133 +3,194 @@ const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR9TmuIYc5_n77z
 let rawData = [];
 let charts = {};
 
+let selectedFilters = {
+  Empresa: [],
+  Nivel: [],
+  Material: []
+};
+
 Papa.parse(CSV_URL, {
   download: true,
   header: true,
+  skipEmptyLines: true,
+
   complete: function(results) {
-    rawData = results.data;
+
+    rawData = results.data
+      .map(r => normalize(r))
+      .filter(r => r.Cantidad_m > 0);
+
+    console.log("DATA OK:", rawData.length);
+
     initFilters();
     updateDashboard();
   }
 });
 
+/* LIMPIEZA ROBUSTA */
+function normalize(row) {
+  return {
+    Empresa: clean(row["Empresa"]),
+    Tecnologia: clean(row["Tecnologia"]),
+    Material: clean(row["Material"]),
+    Nivel: clean(row["Nivel"]),
+    Cantidad_m: parseFloat(
+      clean(row["Cantidad_m"]).replace(/,/g, "")
+    ) || 0
+  };
+}
+
+function clean(val) {
+  return (val || "").toString().trim();
+}
+
+/* FILTROS */
 function initFilters() {
-  const empresaSet = new Set();
-  const nivelSet = new Set();
-  const materialSet = new Set();
+  createButtons("empresaFilter", getUnique("Empresa"), "Empresa");
+  createButtons("nivelFilter", getUnique("Nivel"), "Nivel");
+  createButtons("materialFilter", getUnique("Material"), "Material");
 
-  rawData.forEach(r => {
-    if (r.Empresa) empresaSet.add(r.Empresa);
-    if (r.Nivel) nivelSet.add(r.Nivel);
-    if (r.Material) materialSet.add(r.Material);
+  document.getElementById("resetBtn").onclick = resetFilters;
+}
+
+function getUnique(field) {
+  return [...new Set(rawData.map(d => d[field]).filter(v => v))];
+}
+
+function createButtons(containerId, values, key) {
+  const container = document.getElementById(containerId);
+
+  values.forEach(val => {
+    const btn = document.createElement("button");
+    btn.className = "filter-btn";
+    btn.innerText = val;
+
+    btn.addEventListener("click", () => {
+      btn.classList.toggle("active");
+
+      if (selectedFilters[key].includes(val)) {
+        selectedFilters[key] = selectedFilters[key].filter(v => v !== val);
+      } else {
+        selectedFilters[key].push(val);
+      }
+
+      updateDashboard();
+    });
+
+    container.appendChild(btn);
   });
+}
 
-  fillSelect("empresaFilter", empresaSet);
-  fillSelect("nivelFilter", nivelSet);
-  fillSelect("materialFilter", materialSet);
+function resetFilters() {
+  selectedFilters = { Empresa: [], Nivel: [], Material: [] };
 
-  document.querySelectorAll("select").forEach(s =>
-    s.addEventListener("change", updateDashboard)
+  document.querySelectorAll(".filter-btn").forEach(b =>
+    b.classList.remove("active")
   );
+
+  updateDashboard();
 }
 
-function fillSelect(id, values) {
-  const el = document.getElementById(id);
-  values.forEach(v => {
-    el.innerHTML += `<option value="${v}">${v}</option>`;
-  });
-}
-
+/* DATA */
 function getFilteredData() {
-  const empresa = document.getElementById("empresaFilter").value;
-  const nivel = document.getElementById("nivelFilter").value;
-  const material = document.getElementById("materialFilter").value;
-
   return rawData.filter(r => {
-    return (empresa === "all" || r.Empresa === empresa) &&
-           (nivel === "all" || r.Nivel === nivel) &&
-           (material === "all" || r.Material === material);
+    return (
+      (!selectedFilters.Empresa.length || selectedFilters.Empresa.includes(r.Empresa)) &&
+      (!selectedFilters.Nivel.length || selectedFilters.Nivel.includes(r.Nivel)) &&
+      (!selectedFilters.Material.length || selectedFilters.Material.includes(r.Material))
+    );
   });
 }
 
 function groupBy(data, key) {
   const map = {};
   data.forEach(r => {
-    const k = r[key];
-    const val = parseFloat(r.Cantidad_m) || 0;
-    if (!map[k]) map[k] = 0;
-    map[k] += val;
+    const k = r[key] || "Otros";
+    map[k] = (map[k] || 0) + r.Cantidad_m;
   });
   return map;
 }
 
+/* DASHBOARD */
 function updateDashboard() {
   const data = getFilteredData();
 
   updateKPIs(data);
-  renderCharts(data);
+  updateRanking(data);
+  drawCharts(data);
 }
 
 function updateKPIs(data) {
   let total = 0;
-  const empresaSet = new Set();
-  const groupedTec = {};
+  const empresas = new Set();
+  const tech = {};
+  const nivel = {};
 
   data.forEach(r => {
-    const val = parseFloat(r.Cantidad_m) || 0;
-    total += val;
-    empresaSet.add(r.Empresa);
-
-    if (!groupedTec[r.Tecnologia]) groupedTec[r.Tecnologia] = 0;
-    groupedTec[r.Tecnologia] += val;
+    total += r.Cantidad_m;
+    empresas.add(r.Empresa);
+    tech[r.Tecnologia] = (tech[r.Tecnologia] || 0) + r.Cantidad_m;
+    nivel[r.Nivel] = (nivel[r.Nivel] || 0) + r.Cantidad_m;
   });
 
-  const topTec = Object.keys(groupedTec).reduce((a, b) =>
-    groupedTec[a] > groupedTec[b] ? a : b, "-");
-
-  document.getElementById("totalKPI").innerText = total.toLocaleString();
-  document.getElementById("topTecKPI").innerText = topTec;
-  document.getElementById("empresasKPI").innerText = empresaSet.size;
+  document.getElementById("totalKPI").innerText = Math.round(total).toLocaleString();
+  document.getElementById("empresasKPI").innerText = empresas.size;
+  document.getElementById("topTecKPI").innerText = getTop(tech);
+  document.getElementById("topNivelKPI").innerText = getTop(nivel);
 }
 
-function renderCharts(data) {
-  destroyCharts();
+function getTop(obj) {
+  return Object.keys(obj).reduce((a, b) =>
+    obj[a] > obj[b] ? a : b, "-"
+  );
+}
 
-  const tech = groupBy(data, "Tecnologia");
-  charts.tech = createChart("techChart", "bar", tech, "Tecnología");
+function updateRanking(data) {
+  const table = document.getElementById("rankingTable");
+  table.innerHTML = "";
 
-  const mat = groupBy(data, "Material");
-  charts.material = createChart("materialChart", "pie", mat, "Material");
+  const grouped = groupBy(data, "Tecnologia");
 
-  const nivel = groupBy(data, "Nivel");
-  charts.nivel = createChart("nivelChart", "bar", nivel, "Nivel");
+  Object.entries(grouped)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .forEach((row, i) => {
+
+      table.innerHTML += `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${row[0]}</td>
+          <td>${Math.round(row[1]).toLocaleString()}</td>
+        </tr>`;
+    });
+}
+
+/* CHARTS */
+function drawCharts(data) {
+  Object.values(charts).forEach(c => c?.destroy());
+
+  charts.tech = createChart("techChart", "bar", groupBy(data, "Tecnologia"), "Tecnología");
+  charts.material = createChart("materialChart", "pie", groupBy(data, "Material"), "Material");
+  charts.nivel = createChart("nivelChart", "bar", groupBy(data, "Nivel"), "Nivel");
 }
 
 function createChart(id, type, dataset, label) {
   return new Chart(document.getElementById(id), {
-    type: type,
+    type,
     data: {
       labels: Object.keys(dataset),
       datasets: [{
-        label: label,
-        data: Object.values(dataset),
-        backgroundColor: generateColors(Object.keys(dataset).length)
+        label,
+        data: Object.values(dataset)
       }]
     },
     options: {
-      responsive: true
+      responsive: true,
+      scales: type !== "pie" ? {
+        x: { title: { display: true, text: label } },
+        y: { title: { display: true, text: "Cantidad (m)" } }
+      } : {}
     }
   });
 }
-
-function generateColors(n) {
-  const colors = [];
-  for (let i = 0; i < n; i++) {
-    colors.push(`hsl(${i * 40},70%,50%)`);
-  }
-  return colors;
-}
-
-function destroyCharts() {
-  Object.values(charts).forEach(c => c.destroy());
-}
+``
